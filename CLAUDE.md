@@ -121,6 +121,7 @@ This project includes Claude Code slash commands for easy execution:
 | `KERNEL_MINOR` | (latest) | Kernel minor version |
 | `JOBS` | (nproc) | Parallel build jobs |
 | `INSTALL_KERNEL` | no | Auto-install kernel |
+| `AUTO_REBOOT` | no | Auto-reboot after kernel installation |
 | `USE_OPEN_KERNEL` | yes | Use NVIDIA open modules |
 | `NVIDIA_DRIVER_BRANCH` | 570 | NVIDIA driver branch |
 

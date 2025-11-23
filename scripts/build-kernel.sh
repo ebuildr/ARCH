@@ -3,8 +3,9 @@
 # ARCH Kernel Builder for EndeavourOS
 # Builds latest stable kernel with hardware-specific configurations
 #
-# Debug Mode: DEBUG=yes ./build-kernel.sh
-# Verbose:    VERBOSE=yes ./build-kernel.sh
+# Debug Mode:   DEBUG=yes ./build-kernel.sh
+# Verbose:      VERBOSE=yes ./build-kernel.sh
+# Auto-reboot:  AUTO_REBOOT=yes ./build-kernel.sh
 #
 
 set -euo pipefail
@@ -34,6 +35,7 @@ KERNEL_CDN="https://cdn.kernel.org/pub/linux/kernel"
 JOBS="${JOBS:-$(nproc)}"
 INSTALL_KERNEL="${INSTALL_KERNEL:-no}"
 SIGN_MODULES="${SIGN_MODULES:-no}"
+AUTO_REBOOT="${AUTO_REBOOT:-no}"
 
 # Debug Options
 DEBUG="${DEBUG:-no}"
@@ -441,19 +443,89 @@ install_kernel() {
     # Update bootloader
     log "Updating bootloader..."
     if command -v grub-mkconfig &>/dev/null; then
+        # Create a custom GRUB entry file for clear identification
+        log "Creating custom GRUB entry..."
+        cat > /etc/grub.d/15_linux-custom << 'GRUB_EOF'
+#!/bin/sh
+exec tail -n +3 $0
+# Custom kernel entry - clearly labeled for easy identification
+GRUB_EOF
+
+        # Append the actual menu entry
+        cat >> /etc/grub.d/15_linux-custom << EOF
+
+menuentry '>>> ARCH CUSTOM KERNEL ${version} (MSI Raider 18 HX) <<<' --class arch --class gnu-linux --class gnu --class os \$menuentry_id_option 'linux-custom-${version}' {
+    load_video
+    set gfxpayload=keep
+    insmod gzio
+    insmod part_gpt
+    insmod fat
+    search --no-floppy --fs-uuid --set=root \$(grub-probe --target=fs_uuid /boot)
+    echo 'Loading ARCH Custom Kernel ${version}...'
+    linux /vmlinuz-linux-custom root=\$(findmnt -no SOURCE /) rw nvidia_drm.modeset=1 quiet splash
+    echo 'Loading initial ramdisk...'
+    initrd /initramfs-linux-custom.img
+}
+
+menuentry '>>> ARCH CUSTOM KERNEL ${version} (Fallback) <<<' --class arch --class gnu-linux --class gnu --class os \$menuentry_id_option 'linux-custom-${version}-fallback' {
+    load_video
+    set gfxpayload=keep
+    insmod gzio
+    insmod part_gpt
+    insmod fat
+    search --no-floppy --fs-uuid --set=root \$(grub-probe --target=fs_uuid /boot)
+    echo 'Loading ARCH Custom Kernel ${version} (Fallback)...'
+    linux /vmlinuz-linux-custom root=\$(findmnt -no SOURCE /) rw nvidia_drm.modeset=1
+    echo 'Loading initial ramdisk...'
+    initrd /initramfs-linux-custom-fallback.img
+}
+EOF
+        chmod +x /etc/grub.d/15_linux-custom
+
+        # Regenerate GRUB configuration
+        log "Regenerating GRUB configuration..."
         grub-mkconfig -o /boot/grub/grub.cfg
+
+        log "Custom GRUB entries created:"
+        log "  >>> ARCH CUSTOM KERNEL ${version} (MSI Raider 18 HX) <<<"
+        log "  >>> ARCH CUSTOM KERNEL ${version} (Fallback) <<<"
     elif [ -d /boot/loader ]; then
         # systemd-boot
         cat > "/boot/loader/entries/linux-custom.conf" << EOF
-title   EndeavourOS Linux Custom (${version})
+title   >>> ARCH CUSTOM KERNEL ${version} (MSI Raider 18 HX) <<<
 linux   /vmlinuz-linux-custom
 initrd  /initramfs-linux-custom.img
 options root=LABEL=ROOT rw nvidia_drm.modeset=1
 EOF
+        cat > "/boot/loader/entries/linux-custom-fallback.conf" << EOF
+title   >>> ARCH CUSTOM KERNEL ${version} (Fallback) <<<
+linux   /vmlinuz-linux-custom
+initrd  /initramfs-linux-custom-fallback.img
+options root=LABEL=ROOT rw nvidia_drm.modeset=1
+EOF
+        log "Custom systemd-boot entries created"
     fi
 
     log "Kernel installation complete!"
-    log "Reboot to use the new kernel"
+
+    # Handle reboot
+    if [ "$AUTO_REBOOT" = "yes" ]; then
+        log "Auto-reboot enabled. Rebooting in 5 seconds..."
+        log "Press Ctrl+C to cancel"
+        sleep 5
+        reboot
+    else
+        echo ""
+        log "Reboot required to use the new kernel."
+        echo -n "Reboot now? [y/N]: "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            log "Rebooting..."
+            reboot
+        else
+            log "Skipping reboot. Run 'sudo reboot' when ready."
+        fi
+    fi
 }
 
 # ============================================================================

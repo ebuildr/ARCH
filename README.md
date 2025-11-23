@@ -101,6 +101,7 @@ export KERNEL_MAJOR=6           # Kernel major version
 export KERNEL_MINOR=12          # Kernel minor version (optional)
 export JOBS=8                   # Parallel build jobs
 export INSTALL_KERNEL=yes       # Auto-install kernel
+export AUTO_REBOOT=yes          # Auto-reboot after kernel installation
 export USE_OPEN_KERNEL=yes      # Use NVIDIA open modules
 export NVIDIA_DRIVER_BRANCH=570 # NVIDIA driver branch
 ```
