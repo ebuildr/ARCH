@@ -76,6 +76,8 @@ This project includes Claude Code slash commands for easy execution:
 - `/build-kernel` - Build custom kernel
 - `/nvidia` - Setup NVIDIA RTX 5090 drivers
 - `/thunderbolt` - Configure Thunderbolt 5 / Razer dock
+- `/test` - Test kernel build before installation
+- `/debug` - Debug and troubleshoot build issues
 
 ## Key Features
 
@@ -163,3 +165,43 @@ When assisting with this project:
    - Existing kernels are preserved
    - Configuration changes are additive
    - Clean command requires confirmation
+
+## Testing & Debugging
+
+### Test Kernel Build
+Before installing, test the kernel build:
+```bash
+./scripts/test-kernel.sh          # Full test suite
+./scripts/test-kernel.sh quick    # Quick sanity check
+./scripts/test-kernel.sh hardware # Hardware support check
+```
+
+### Debug Mode
+Enable debug output for troubleshooting:
+```bash
+DEBUG=yes ./scripts/build-kernel.sh    # Debug build output
+DEBUG=yes ./scripts/test-kernel.sh     # Debug test output
+VERBOSE=yes ./scripts/test-kernel.sh   # Verbose test output
+```
+
+### Analyze Build Errors
+```bash
+./scripts/test-kernel.sh errors        # Analyze build log
+cat logs/kernel-build.log | tail -100  # View build log
+```
+
+### Test Suite Checks
+The test suite verifies:
+1. **Kernel Image** - bzImage exists and is valid
+2. **Modules** - Critical modules (nvidia, iwlwifi, thunderbolt) configured
+3. **Configuration** - Required kernel options enabled
+4. **Boot Compatibility** - EFI, initramfs, filesystem support
+5. **Hardware Support** - Arrow Lake, RTX 5090, TB5, WiFi 7
+6. **DKMS Compatibility** - NVIDIA driver can build against kernel
+
+### Environment Variables for Testing
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEBUG` | no | Enable debug output |
+| `VERBOSE` | no | Enable verbose output |
+| `RUN_TESTS` | yes | Run tests after build |

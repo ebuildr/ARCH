@@ -3,6 +3,9 @@
 # ARCH Kernel Builder for EndeavourOS
 # Builds latest stable kernel with hardware-specific configurations
 #
+# Debug Mode: DEBUG=yes ./build-kernel.sh
+# Verbose:    VERBOSE=yes ./build-kernel.sh
+#
 
 set -euo pipefail
 
@@ -18,6 +21,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m'
 
 # Kernel Configuration
@@ -31,9 +35,15 @@ JOBS="${JOBS:-$(nproc)}"
 INSTALL_KERNEL="${INSTALL_KERNEL:-no}"
 SIGN_MODULES="${SIGN_MODULES:-no}"
 
+# Debug Options
+DEBUG="${DEBUG:-no}"
+VERBOSE="${VERBOSE:-no}"
+RUN_TESTS="${RUN_TESTS:-yes}"
+
 log() { echo -e "${GREEN}[BUILD]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
+debug() { [ "$DEBUG" = "yes" ] && echo -e "${MAGENTA}[DEBUG]${NC} $1" || true; }
 header() {
     echo -e "\n${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${CYAN}  $1${NC}"
@@ -447,6 +457,35 @@ EOF
 }
 
 # ============================================================================
+# Run Tests
+# ============================================================================
+run_tests() {
+    local version="$1"
+
+    if [ "$RUN_TESTS" != "yes" ]; then
+        debug "Tests skipped (RUN_TESTS=$RUN_TESTS)"
+        return 0
+    fi
+
+    header "Running Kernel Tests"
+
+    if [ -f "${SCRIPT_DIR}/test-kernel.sh" ]; then
+        local test_args=""
+        [ "$DEBUG" = "yes" ] && test_args="$test_args --debug"
+        [ "$VERBOSE" = "yes" ] && test_args="$test_args --verbose"
+
+        bash "${SCRIPT_DIR}/test-kernel.sh" test $test_args || {
+            warn "Some tests failed - review output above"
+            return 1
+        }
+    else
+        warn "Test script not found, skipping tests"
+    fi
+
+    return 0
+}
+
+# ============================================================================
 # Main
 # ============================================================================
 main() {
@@ -455,6 +494,12 @@ main() {
     log "Project root: $PROJECT_ROOT"
     log "Build directory: $BUILD_DIR"
     log "Parallel jobs: $JOBS"
+
+    # Debug information
+    debug "Debug mode: $DEBUG"
+    debug "Verbose mode: $VERBOSE"
+    debug "Run tests: $RUN_TESTS"
+    debug "Install kernel: $INSTALL_KERNEL"
 
     mkdir -p "$BUILD_DIR" "$LOG_DIR"
 
@@ -475,11 +520,21 @@ main() {
     fi
 
     log "Building kernel version: $version"
+    debug "Full version string: $version"
 
     download_kernel "$version"
     configure_kernel "$version"
     build_kernel "$version"
     package_kernel "$version"
+
+    # Run tests before installation
+    if ! run_tests "$version"; then
+        warn "Tests failed - kernel may have issues"
+        if [ "$INSTALL_KERNEL" = "yes" ]; then
+            warn "Proceeding with installation despite test failures"
+        fi
+    fi
+
     install_kernel "$version"
 
     header "Build Complete!"
@@ -493,6 +548,13 @@ main() {
     log "Or use the Arch package:"
     log "  cd ${BUILD_DIR}/packages"
     log "  makepkg -si"
+    log ""
+    log "To run tests again:"
+    log "  ./scripts/test-kernel.sh"
+    log ""
+    log "Debug options:"
+    log "  DEBUG=yes ./scripts/build-kernel.sh      # Debug output"
+    log "  VERBOSE=yes ./scripts/test-kernel.sh     # Verbose tests"
 }
 
 main "$@"
