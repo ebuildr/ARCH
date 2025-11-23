@@ -76,6 +76,7 @@ This project includes Claude Code slash commands for easy execution:
 - `/build-kernel` - Build custom kernel
 - `/nvidia` - Setup NVIDIA RTX 5090 drivers
 - `/thunderbolt` - Configure Thunderbolt 5 / Razer dock
+- `/monitor` - Setup Samsung Odyssey via DisplayPort
 - `/test` - Test kernel build before installation
 - `/debug` - Debug and troubleshoot build issues
 
@@ -153,6 +154,7 @@ When the user asks to perform any of these tasks, run the corresponding command:
 | "build kernel" / "compile kernel" | `bash /home/user/ARCH/scripts/build-kernel.sh` |
 | "setup nvidia" / "install nvidia" | `bash /home/user/ARCH/scripts/build-nvidia.sh` |
 | "setup thunderbolt" / "configure dock" | `bash /home/user/ARCH/scripts/setup-thunderbolt.sh` |
+| "setup monitor" / "configure display" | `bash /home/user/ARCH/scripts/setup-monitor.sh` |
 | "test kernel" / "verify build" | `bash /home/user/ARCH/scripts/test-kernel.sh` |
 | "debug" / "troubleshoot" | `bash /home/user/ARCH/scripts/test-kernel.sh debug` |
 | "check status" | `bash /home/user/ARCH/arch-builder.sh status` |

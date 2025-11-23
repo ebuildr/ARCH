@@ -74,7 +74,8 @@ Commands:
   build         Build the custom kernel
   nvidia        Build/install NVIDIA drivers for RTX 5090
   thunderbolt   Configure Thunderbolt 5 / Razer dock
-  all           Run complete setup (scan + build + nvidia + thunderbolt)
+  monitor       Setup Samsung Odyssey monitor via DisplayPort
+  all           Run complete setup (scan + build + nvidia + thunderbolt + monitor)
   status        Show current system status
   clean         Clean build directories
 
@@ -86,6 +87,7 @@ Options:
   --install            Install kernel after building
   --no-nvidia          Skip NVIDIA driver setup
   --no-thunderbolt     Skip Thunderbolt setup
+  --no-monitor         Skip monitor setup
 
 Examples:
   $(basename "$0") scan                    # Scan hardware only
@@ -93,6 +95,7 @@ Examples:
   $(basename "$0") build --install         # Build and install kernel
   $(basename "$0") all --install           # Complete setup with installation
   $(basename "$0") nvidia                  # Install NVIDIA drivers only
+  $(basename "$0") monitor                 # Setup Samsung Odyssey monitor
 
 Environment Variables:
   KERNEL_MAJOR         Kernel major version (default: 6)
@@ -255,6 +258,20 @@ run_thunderbolt() {
 }
 
 # ============================================================================
+# Monitor Setup
+# ============================================================================
+run_monitor() {
+    header "Monitor Setup"
+
+    if [ -f "${SCRIPTS_DIR}/setup-monitor.sh" ]; then
+        bash "${SCRIPTS_DIR}/setup-monitor.sh"
+    else
+        error "setup-monitor.sh not found!"
+        return 1
+    fi
+}
+
+# ============================================================================
 # Complete Setup
 # ============================================================================
 run_all() {
@@ -266,6 +283,7 @@ run_all() {
     log "  2. Build a custom kernel"
     log "  3. Install NVIDIA RTX 5090 drivers"
     log "  4. Configure Thunderbolt 5 / Razer dock"
+    log "  5. Setup Samsung Odyssey monitor"
     echo ""
 
     read -p "Continue with complete setup? [y/N] " -n 1 -r
@@ -278,31 +296,39 @@ run_all() {
     local start_time=$(date +%s)
 
     # Step 1: Scan
-    log "Step 1/4: Scanning hardware..."
+    log "Step 1/5: Scanning hardware..."
     run_scan
 
     # Step 2: Build kernel
     if [ "${SKIP_KERNEL:-}" != "yes" ]; then
-        log "Step 2/4: Building kernel..."
+        log "Step 2/5: Building kernel..."
         run_build
     else
-        log "Step 2/4: Skipping kernel build"
+        log "Step 2/5: Skipping kernel build"
     fi
 
     # Step 3: NVIDIA
     if [ "${NO_NVIDIA:-}" != "yes" ]; then
-        log "Step 3/4: Setting up NVIDIA drivers..."
+        log "Step 3/5: Setting up NVIDIA drivers..."
         run_nvidia
     else
-        log "Step 3/4: Skipping NVIDIA setup"
+        log "Step 3/5: Skipping NVIDIA setup"
     fi
 
     # Step 4: Thunderbolt
     if [ "${NO_THUNDERBOLT:-}" != "yes" ]; then
-        log "Step 4/4: Configuring Thunderbolt..."
+        log "Step 4/5: Configuring Thunderbolt..."
         run_thunderbolt
     else
-        log "Step 4/4: Skipping Thunderbolt setup"
+        log "Step 4/5: Skipping Thunderbolt setup"
+    fi
+
+    # Step 5: Monitor
+    if [ "${NO_MONITOR:-}" != "yes" ]; then
+        log "Step 5/5: Setting up Samsung Odyssey monitor..."
+        run_monitor
+    else
+        log "Step 5/5: Skipping monitor setup"
     fi
 
     local end_time=$(date +%s)
@@ -317,6 +343,7 @@ run_all() {
     log "  2. If kernel was built, install with: sudo make install"
     log "  3. Reboot to use new kernel and drivers"
     log "  4. After reboot, verify with: nvidia-smi && boltctl list"
+    log "  5. Configure display with: xrandr --query"
 }
 
 # ============================================================================
@@ -328,10 +355,11 @@ parse_args() {
     INSTALL_KERNEL="${INSTALL_KERNEL:-no}"
     NO_NVIDIA="no"
     NO_THUNDERBOLT="no"
+    NO_MONITOR="no"
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            scan|build|nvidia|thunderbolt|all|status|clean)
+            scan|build|nvidia|thunderbolt|monitor|all|status|clean)
                 COMMAND="$1"
                 shift
                 ;;
@@ -363,6 +391,10 @@ parse_args() {
                 NO_THUNDERBOLT="yes"
                 shift
                 ;;
+            --no-monitor)
+                NO_MONITOR="yes"
+                shift
+                ;;
             *)
                 error "Unknown option: $1"
                 show_help
@@ -374,6 +406,7 @@ parse_args() {
     export JOBS
     export NO_NVIDIA
     export NO_THUNDERBOLT
+    export NO_MONITOR
 }
 
 # ============================================================================
@@ -402,6 +435,9 @@ main() {
             ;;
         thunderbolt)
             run_thunderbolt
+            ;;
+        monitor)
+            run_monitor
             ;;
         all)
             run_all
