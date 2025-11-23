@@ -139,6 +139,84 @@ This project includes Claude Code slash commands for easy execution:
 - bolt (Thunderbolt)
 - nvidia-utils
 
+## Instructions for Claude Code
+
+**IMPORTANT**: These instructions tell Claude Code how to operate this repository.
+
+### How to Execute Commands
+
+When the user asks to perform any of these tasks, run the corresponding command:
+
+| User Request | Command to Run |
+|--------------|----------------|
+| "scan hardware" / "detect hardware" | `bash /home/user/ARCH/scripts/scan-hardware.sh` |
+| "build kernel" / "compile kernel" | `bash /home/user/ARCH/scripts/build-kernel.sh` |
+| "setup nvidia" / "install nvidia" | `bash /home/user/ARCH/scripts/build-nvidia.sh` |
+| "setup thunderbolt" / "configure dock" | `bash /home/user/ARCH/scripts/setup-thunderbolt.sh` |
+| "test kernel" / "verify build" | `bash /home/user/ARCH/scripts/test-kernel.sh` |
+| "debug" / "troubleshoot" | `bash /home/user/ARCH/scripts/test-kernel.sh debug` |
+| "check status" | `bash /home/user/ARCH/arch-builder.sh status` |
+| "full setup" / "setup everything" | `bash /home/user/ARCH/arch-builder.sh all` |
+
+### Working Directory
+
+Always run commands from `/home/user/ARCH`:
+```bash
+cd /home/user/ARCH && bash scripts/scan-hardware.sh
+```
+
+### Debug Mode
+
+When the user asks for debug output or has issues:
+```bash
+cd /home/user/ARCH && DEBUG=yes VERBOSE=yes bash scripts/build-kernel.sh
+```
+
+### Long-Running Commands
+
+Kernel builds take 15-60 minutes. When running `build-kernel.sh`:
+1. Warn the user it will take time
+2. Consider running in background if appropriate
+3. Check `logs/kernel-build.log` for progress
+
+### Checking Results
+
+After running scripts, verify success:
+```bash
+# After scan
+cat /home/user/ARCH/config/hardware-report.txt
+
+# After kernel build
+bash /home/user/ARCH/scripts/test-kernel.sh quick
+
+# After NVIDIA setup
+nvidia-smi
+
+# After Thunderbolt setup
+boltctl list
+```
+
+### Error Handling
+
+If a script fails:
+1. Check the log: `cat /home/user/ARCH/logs/*.log | tail -50`
+2. Run debug analysis: `bash /home/user/ARCH/scripts/test-kernel.sh errors`
+3. Show the user what went wrong
+
+### Permissions
+
+These operations require sudo (scripts will prompt):
+- Installing packages (`pacman -S`)
+- Installing kernel modules (`make modules_install`)
+- Configuring system services (`systemctl`)
+- Writing to `/etc/` directories
+
+### Safety Notes
+
+- Scripts are non-destructive (existing kernels preserved)
+- Always run `/test` before `/build-kernel --install`
+- Clean command requires confirmation
+
 ## Notes for Claude Code
 
 When assisting with this project:
