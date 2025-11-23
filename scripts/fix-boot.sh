@@ -1,0 +1,262 @@
+#!/bin/bash
+#
+# Fix boot issues after custom kernel installation
+# Handles: GRUB labeling, NVIDIA DKMS, LightDM
+#
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log() { echo -e "${GREEN}[FIX]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1"; }
+header() {
+    echo -e "\n${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}  $1${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}\n"
+}
+
+# ============================================================================
+# Diagnose Current State
+# ============================================================================
+diagnose() {
+    header "Diagnosing Boot Issues"
+
+    log "Current kernel:"
+    uname -r
+    echo
+
+    log "Available kernels in /boot:"
+    ls -la /boot/vmlinuz* 2>/dev/null || echo "  No vmlinuz files found"
+    echo
+
+    log "NVIDIA modules loaded:"
+    lsmod | grep -E "nvidia|nouveau" || echo "  No NVIDIA/nouveau modules loaded"
+    echo
+
+    log "NVIDIA DKMS status:"
+    dkms status 2>/dev/null || echo "  DKMS not available"
+    echo
+
+    log "LightDM status:"
+    systemctl status lightdm --no-pager 2>/dev/null | head -15 || echo "  LightDM not found"
+    echo
+
+    log "GRUB entries for custom kernel:"
+    grep -E "menuentry.*custom|linux.*custom" /boot/grub/grub.cfg 2>/dev/null | head -10 || echo "  No custom kernel entries found"
+    echo
+
+    log "Available kernel modules directories:"
+    ls -d /usr/lib/modules/*custom* 2>/dev/null || echo "  No custom kernel modules directory"
+}
+
+# ============================================================================
+# Fix NVIDIA DKMS
+# ============================================================================
+fix_nvidia() {
+    header "Fixing NVIDIA DKMS Modules"
+
+    # Get the custom kernel version
+    local custom_kernel=""
+    for dir in /usr/lib/modules/*custom*; do
+        if [ -d "$dir" ]; then
+            custom_kernel=$(basename "$dir")
+            break
+        fi
+    done
+
+    if [ -z "$custom_kernel" ]; then
+        error "No custom kernel modules found in /usr/lib/modules/"
+        error "Did the kernel install complete? Check if modules were installed."
+        return 1
+    fi
+
+    log "Found custom kernel: $custom_kernel"
+
+    # Check if headers exist
+    if [ ! -d "/usr/lib/modules/${custom_kernel}/build" ]; then
+        error "Kernel headers not found for $custom_kernel"
+        error "Install headers or rebuild kernel with headers"
+        return 1
+    fi
+
+    log "Kernel headers found"
+
+    # Get NVIDIA version
+    local nvidia_ver=""
+    nvidia_ver=$(dkms status | grep nvidia | head -1 | cut -d',' -f1 | cut -d'/' -f2) || true
+
+    if [ -z "$nvidia_ver" ]; then
+        warn "No NVIDIA DKMS module found"
+        log "Installing nvidia-dkms..."
+        sudo pacman -S --needed --noconfirm nvidia-dkms nvidia-utils
+        nvidia_ver=$(dkms status | grep nvidia | head -1 | cut -d',' -f1 | cut -d'/' -f2)
+    fi
+
+    log "NVIDIA version: $nvidia_ver"
+
+    # Build NVIDIA for custom kernel
+    log "Building NVIDIA modules for $custom_kernel..."
+    sudo dkms install nvidia/${nvidia_ver} -k "$custom_kernel" || {
+        error "DKMS build failed"
+        log "Check: journalctl -xeu dkms"
+        return 1
+    }
+
+    log "NVIDIA modules built successfully"
+
+    # Regenerate initramfs
+    log "Regenerating initramfs..."
+    sudo mkinitcpio -k "$custom_kernel" -g "/boot/initramfs-linux-custom.img"
+
+    log "NVIDIA fix complete"
+}
+
+# ============================================================================
+# Fix GRUB with Clear Labels
+# ============================================================================
+fix_grub() {
+    header "Adding Custom GRUB Entry"
+
+    # Find custom kernel
+    local vmlinuz=""
+    local initrd=""
+    local version=""
+
+    if [ -f /boot/vmlinuz-linux-custom ]; then
+        vmlinuz="vmlinuz-linux-custom"
+        initrd="initramfs-linux-custom.img"
+        version="linux-custom"
+    else
+        for f in /boot/vmlinuz*custom*; do
+            if [ -f "$f" ]; then
+                vmlinuz=$(basename "$f")
+                initrd="${vmlinuz/vmlinuz/initramfs}.img"
+                version="${vmlinuz/vmlinuz-/}"
+                break
+            fi
+        done
+    fi
+
+    if [ -z "$vmlinuz" ]; then
+        error "No custom kernel found in /boot"
+        return 1
+    fi
+
+    log "Found kernel: $vmlinuz"
+
+    # Get root partition
+    local root_part=""
+    root_part=$(findmnt -n -o SOURCE /) || root_part="LABEL=ROOT"
+
+    log "Root partition: $root_part"
+
+    # Create custom GRUB entry
+    local grub_custom="/etc/grub.d/15_custom_kernel"
+
+    log "Creating custom GRUB entry at $grub_custom..."
+
+    sudo tee "$grub_custom" > /dev/null << EOF
+#!/bin/sh
+exec tail -n +3 \$0
+# Custom kernel entry for MSI Raider 18 HX
+# Generated by ARCH fix-boot.sh
+
+menuentry '★ EndeavourOS Custom Kernel (Arrow Lake + RTX 5090)' --class endeavouros --class linux --class os \$menuentry_id_option 'custom-kernel' {
+    load_video
+    set gfxpayload=keep
+    insmod gzio
+    insmod part_gpt
+    insmod fat
+    insmod ext4
+    search --no-floppy --fs-uuid --set=root \$(grub-probe --target=fs_uuid /)
+    echo 'Loading Custom Kernel for MSI Raider 18 HX...'
+    linux /${vmlinuz} root=${root_part} rw nvidia_drm.modeset=1 nvidia.NVreg_PreserveVideoMemoryAllocations=1 quiet splash
+    initrd /${initrd}
+}
+
+menuentry '★ EndeavourOS Custom Kernel (Recovery Mode)' --class endeavouros --class linux --class os \$menuentry_id_option 'custom-kernel-recovery' {
+    load_video
+    insmod gzio
+    insmod part_gpt
+    insmod fat
+    insmod ext4
+    search --no-floppy --fs-uuid --set=root \$(grub-probe --target=fs_uuid /)
+    echo 'Loading Custom Kernel (Recovery Mode)...'
+    linux /${vmlinuz} root=${root_part} rw single nvidia_drm.modeset=1
+    initrd /initramfs-linux-custom-fallback.img
+}
+EOF
+
+    sudo chmod +x "$grub_custom"
+
+    # Regenerate GRUB config
+    log "Regenerating GRUB configuration..."
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    log "GRUB updated with clearly labeled custom kernel entries"
+    log "Look for '★ EndeavourOS Custom Kernel' at the top of the GRUB menu"
+}
+
+# ============================================================================
+# Temporary Fix: Boot Without GUI
+# ============================================================================
+fix_lightdm_temp() {
+    header "Temporary LightDM Fix"
+
+    log "If you're stuck at command line, you have options:"
+    echo
+    echo "1. Fix NVIDIA and reboot:"
+    echo "   sudo $0 nvidia"
+    echo "   sudo reboot"
+    echo
+    echo "2. Start X manually (if NVIDIA works):"
+    echo "   startx"
+    echo
+    echo "3. Boot with old kernel:"
+    echo "   - Reboot and select old kernel from GRUB menu"
+    echo "   - Then run: sudo $0 all"
+    echo
+    echo "4. Disable LightDM and use TTY:"
+    echo "   sudo systemctl disable lightdm"
+    echo "   sudo reboot"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+case "${1:-diagnose}" in
+    diagnose|diag|d)
+        diagnose
+        ;;
+    nvidia|n)
+        fix_nvidia
+        ;;
+    grub|g)
+        fix_grub
+        ;;
+    lightdm|l)
+        fix_lightdm_temp
+        ;;
+    all|a)
+        diagnose
+        fix_nvidia
+        fix_grub
+        log "All fixes applied. Reboot to test."
+        ;;
+    *)
+        echo "Usage: $0 [diagnose|nvidia|grub|lightdm|all]"
+        echo
+        echo "Commands:"
+        echo "  diagnose  - Show current boot state (default)"
+        echo "  nvidia    - Rebuild NVIDIA DKMS modules for custom kernel"
+        echo "  grub      - Add clearly labeled GRUB entry"
+        echo "  lightdm   - Show LightDM recovery options"
+        echo "  all       - Run all fixes"
+        ;;
+esac
