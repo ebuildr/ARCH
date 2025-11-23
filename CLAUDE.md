@@ -26,7 +26,9 @@ ARCH/
 │   ├── scan-hardware.sh     # Hardware detection and config generation
 │   ├── build-kernel.sh      # Kernel download, configure, and build
 │   ├── build-nvidia.sh      # NVIDIA RTX 5090 driver setup
-│   └── setup-thunderbolt.sh # Thunderbolt 5 / Razer dock config
+│   ├── setup-thunderbolt.sh # Thunderbolt 5 / Razer dock config
+│   ├── check-kernel.sh      # Pre-reboot kernel validation
+│   └── fix-boot.sh          # Boot issue diagnosis and repair
 ├── config/                  # Generated configurations
 │   ├── hardware-report.txt  # Hardware scan results
 │   ├── kernel-config-fragment.txt  # Kernel config options
@@ -157,6 +159,10 @@ When the user asks to perform any of these tasks, run the corresponding command:
 | "setup monitor" / "configure display" | `bash /home/user/ARCH/scripts/setup-monitor.sh` |
 | "test kernel" / "verify build" | `bash /home/user/ARCH/scripts/test-kernel.sh` |
 | "debug" / "troubleshoot" | `bash /home/user/ARCH/scripts/test-kernel.sh debug` |
+| "check kernel" / "validate before reboot" | `bash /home/user/ARCH/scripts/check-kernel.sh` |
+| "fix boot" / "boot problems" | `bash /home/user/ARCH/scripts/fix-boot.sh diagnose` |
+| "fix nvidia dkms" | `sudo bash /home/user/ARCH/scripts/fix-boot.sh nvidia` |
+| "fix grub" | `sudo bash /home/user/ARCH/scripts/fix-boot.sh grub` |
 | "check status" | `bash /home/user/ARCH/arch-builder.sh status` |
 | "full setup" / "setup everything" | `bash /home/user/ARCH/arch-builder.sh all` |
 

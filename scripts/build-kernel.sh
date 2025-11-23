@@ -453,6 +453,15 @@ EOF
     fi
 
     log "Kernel installation complete!"
+
+    # Run pre-reboot validation
+    if [ -f "${SCRIPT_DIR}/check-kernel.sh" ]; then
+        log "Running pre-reboot validation..."
+        bash "${SCRIPT_DIR}/check-kernel.sh" "${version}-arch-custom" || {
+            warn "Pre-reboot check found issues - review above before rebooting"
+        }
+    fi
+
     log "Reboot to use the new kernel"
 }
 
@@ -551,6 +560,9 @@ main() {
     log ""
     log "To run tests again:"
     log "  ./scripts/test-kernel.sh"
+    log ""
+    log "BEFORE REBOOTING - validate kernel is ready:"
+    log "  ./scripts/check-kernel.sh"
     log ""
     log "Debug options:"
     log "  DEBUG=yes ./scripts/build-kernel.sh      # Debug output"
