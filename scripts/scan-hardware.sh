@@ -214,11 +214,11 @@ EOF
 }
 
 # ============================================================================
-# Thunderbolt Detection
+# Thunderbolt 5 Detection
 # ============================================================================
 detect_thunderbolt() {
-    header "Thunderbolt/USB4 Information"
-    log "Detecting Thunderbolt controllers..."
+    header "Thunderbolt 5 / USB4 v2 Information"
+    log "Detecting Thunderbolt 5 controllers..."
 
     # Check for Thunderbolt controllers
     if lspci 2>/dev/null | grep -i thunderbolt > /dev/null; then
@@ -231,28 +231,37 @@ detect_thunderbolt() {
     if lspci 2>/dev/null | grep -i "usb4\|thunderbolt" > /dev/null; then
         log "  ${GREEN}Thunderbolt/USB4 support detected${NC}"
         echo "USB4=yes" >> "$HARDWARE_REPORT"
+        echo "TB5=yes" >> "$HARDWARE_REPORT"
 
         cat >> "$KERNEL_CONFIG" << 'EOF'
 
-# Thunderbolt 5 / USB4 Support
+# ═══════════════════════════════════════════════════════════════════════════
+# Thunderbolt 5 / USB4 v2 Support
+# ═══════════════════════════════════════════════════════════════════════════
+# TB5 Features: 80/120 Gbps, DP 2.1, PCIe Gen 4
+
 CONFIG_USB4=y
 CONFIG_USB4_KUNIT_TEST=n
 CONFIG_USB4_DEBUGFS_WRITE=y
 CONFIG_USB4_DMA_TEST=m
 CONFIG_USB4_NET=m
 
-# Thunderbolt Networking
+# Thunderbolt Networking (P2P over TB5)
 CONFIG_THUNDERBOLT_NET=y
 
-# USB4 PCIe Tunneling
+# PCIe Gen 4 Tunneling for TB5
 CONFIG_HOTPLUG_PCI=y
 CONFIG_HOTPLUG_PCI_PCIE=y
 CONFIG_HOTPLUG_PCI_ACPI=y
+CONFIG_PCIE_PTM=y
+CONFIG_PCIEAER=y
+CONFIG_PCIEPORTBUS=y
+CONFIG_PCIE_DPC=y
 
 # Thunderbolt Security
 CONFIG_SECURITY_PATH=y
 
-# DisplayPort Alt Mode (for TB docks)
+# DisplayPort 2.1 Alt Mode (TB5 supports UHBR 20)
 CONFIG_TYPEC=y
 CONFIG_TYPEC_TCPM=y
 CONFIG_TYPEC_UCSI=y
@@ -260,22 +269,38 @@ CONFIG_UCSI_ACPI=y
 CONFIG_TYPEC_DP_ALTMODE=m
 CONFIG_TYPEC_NVIDIA_ALTMODE=m
 CONFIG_TYPEC_ANX7411=m
+CONFIG_TYPEC_MUX_FSA4480=m
+CONFIG_TYPEC_MUX_GPIO_SBU=m
 
-# USB Power Delivery
+# USB Power Delivery (up to 240W with TB5)
 CONFIG_USB_PD=y
+CONFIG_TYPEC_TCPCI=m
+CONFIG_USB_ROLE_SWITCH=y
+
+# DRM Display helpers for DP 2.1
+CONFIG_DRM_DISPLAY_DP_HELPER=y
+CONFIG_DRM_DISPLAY_HDMI_HELPER=y
+CONFIG_DRM_DISPLAY_HELPER=y
+CONFIG_DRM_DP_AUX_CHARDEV=y
+CONFIG_DRM_DP_CEC=y
 
 EOF
     fi
 
-    # Razer Dock Support
-    log "  Adding Razer Thunderbolt Dock support..."
+    # Razer Thunderbolt 5 Dock Support
+    log "  Adding Razer Thunderbolt 5 Dock support..."
     cat >> "$KERNEL_CONFIG" << 'EOF'
 
-# Razer Thunderbolt Dock Support
+# Razer Thunderbolt 5 Dock Support
 CONFIG_USB_SERIAL=m
 CONFIG_USB_SERIAL_GENERIC=y
 CONFIG_HID_RAZER=m
 CONFIG_USB_HID=y
+
+# USB4 Hub support for dock peripherals
+CONFIG_USB_XHCI_HCD=y
+CONFIG_USB_XHCI_PCI=y
+CONFIG_USB_XHCI_PLATFORM=m
 
 EOF
 }
