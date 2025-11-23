@@ -1,0 +1,36 @@
+# Build directories
+build/
+logs/
+
+# Generated configs (keep templates, ignore generated)
+config/hardware-report.txt
+config/hardware.json
+config/kernel-config-fragment.txt
+config/required-modules.txt
+config/nvidia-gpu.txt
+config/thunderbolt-report.txt
+
+# Kernel source
+linux-*/
+*.tar.xz
+*.tar.gz
+
+# NVIDIA downloads
+NVIDIA-Linux-*.run
+NVIDIA-Linux-*/
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
