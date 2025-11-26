@@ -72,13 +72,23 @@ ARCH/
 
 This project includes Claude Code slash commands for easy execution:
 
+### Setup Commands
 - `/scan` - Run hardware scanner
 - `/build-kernel` - Build custom kernel
 - `/nvidia` - Setup NVIDIA RTX 5090 drivers
 - `/thunderbolt` - Configure Thunderbolt 5 / Razer dock
 - `/monitor` - Setup Samsung Odyssey via DisplayPort
+
+### Testing & Debugging
 - `/test` - Test kernel build before installation
-- `/debug` - Debug and troubleshoot build issues
+- `/debug` - Run comprehensive system diagnostics
+
+### Fix Commands
+- `/fix-all` - Fix all detected issues (VMD + NVIDIA + Thunderbolt/DP)
+- `/fix-nvidia` - Fix NVIDIA driver issues only
+- `/fix-tb` - Fix Thunderbolt/DisplayPort issues only
+
+**Note:** The fix commands are designed to troubleshoot and repair common issues after building and installing the kernel.
 
 ## Key Features
 
@@ -156,7 +166,10 @@ When the user asks to perform any of these tasks, run the corresponding command:
 | "setup thunderbolt" / "configure dock" | `bash /home/user/ARCH/scripts/setup-thunderbolt.sh` |
 | "setup monitor" / "configure display" | `bash /home/user/ARCH/scripts/setup-monitor.sh` |
 | "test kernel" / "verify build" | `bash /home/user/ARCH/scripts/test-kernel.sh` |
-| "debug" / "troubleshoot" | `bash /home/user/ARCH/scripts/test-kernel.sh debug` |
+| "debug" / "diagnose system" | `bash /home/user/ARCH/scripts/debug-system.sh` |
+| "fix all" / "fix everything" | `bash /home/user/ARCH/scripts/fix-all.sh` |
+| "fix nvidia" / "repair nvidia" | `bash /home/user/ARCH/scripts/fix-nvidia.sh` |
+| "fix thunderbolt" / "fix displayport" / "fix monitor" | `bash /home/user/ARCH/scripts/fix-thunderbolt-displayport.sh` |
 | "check status" | `bash /home/user/ARCH/arch-builder.sh status` |
 | "full setup" / "setup everything" | `bash /home/user/ARCH/arch-builder.sh all` |
 
@@ -200,10 +213,14 @@ boltctl list
 
 ### Error Handling
 
-If a script fails:
-1. Check the log: `cat /home/user/ARCH/logs/*.log | tail -50`
-2. Run debug analysis: `bash /home/user/ARCH/scripts/test-kernel.sh errors`
-3. Show the user what went wrong
+If a script fails or the user reports issues:
+1. Run comprehensive diagnostics: `bash /home/user/ARCH/scripts/debug-system.sh`
+2. Check the logs: `cat /home/user/ARCH/logs/*.log | tail -50`
+3. Run specific fixes:
+   - NVIDIA issues: `bash /home/user/ARCH/scripts/fix-nvidia.sh`
+   - Thunderbolt/Monitor: `bash /home/user/ARCH/scripts/fix-thunderbolt-displayport.sh`
+   - All issues: `bash /home/user/ARCH/scripts/fix-all.sh`
+4. Show the user what went wrong and what was fixed
 
 ### Permissions
 

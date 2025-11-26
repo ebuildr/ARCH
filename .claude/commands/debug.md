@@ -1,15 +1,23 @@
-# Debug Kernel Build
+# Debug System
 
-Debug and troubleshoot kernel build issues.
+Comprehensive system diagnostics for hardware, drivers, and kernel issues.
 
-## Analyze Build Errors
+## Full System Diagnostics (Recommended)
 ```bash
-cd /home/user/ARCH && bash scripts/test-kernel.sh errors
+cd /home/user/ARCH && bash scripts/debug-system.sh
 ```
 
-## Full Debug Analysis
+This checks:
+- VMD (Intel Volume Management Device)
+- NVIDIA RTX 5090 drivers
+- Thunderbolt 5 / DisplayPort
+- Razer dock detection
+- Samsung Odyssey monitor
+- Kernel configuration
+
+## Kernel Build Errors Only
 ```bash
-cd /home/user/ARCH && DEBUG=yes bash scripts/test-kernel.sh debug
+cd /home/user/ARCH && bash scripts/test-kernel.sh errors
 ```
 
 ## Check Build Log

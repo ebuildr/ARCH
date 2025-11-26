@@ -392,6 +392,11 @@ detect_storage() {
 
         cat >> "$KERNEL_CONFIG" << 'EOF'
 
+# Intel VMD (Volume Management Device)
+# Required for Intel Arrow Lake NVMe management
+CONFIG_VMD=y
+CONFIG_PCI_HYPERV_INTERFACE=m
+
 # NVMe Storage (WD_BLACK SN850X, SN8100)
 CONFIG_BLK_DEV_NVME=y
 CONFIG_NVME_CORE=y

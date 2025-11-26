@@ -75,6 +75,10 @@ Commands:
   nvidia        Build/install NVIDIA drivers for RTX 5090
   thunderbolt   Configure Thunderbolt 5 / Razer dock
   monitor       Setup Samsung Odyssey monitor via DisplayPort
+  debug         Run comprehensive system diagnostics
+  fix           Fix all detected issues (VMD + NVIDIA + Thunderbolt/DP)
+  fix-nvidia    Fix NVIDIA driver issues only
+  fix-tb        Fix Thunderbolt/DisplayPort issues only
   all           Run complete setup (scan + build + nvidia + thunderbolt + monitor)
   status        Show current system status
   clean         Clean build directories
@@ -272,6 +276,62 @@ run_monitor() {
 }
 
 # ============================================================================
+# Debug System
+# ============================================================================
+run_debug() {
+    header "System Diagnostics"
+
+    if [ -f "${SCRIPTS_DIR}/debug-system.sh" ]; then
+        bash "${SCRIPTS_DIR}/debug-system.sh"
+    else
+        error "debug-system.sh not found!"
+        return 1
+    fi
+}
+
+# ============================================================================
+# Fix All Issues
+# ============================================================================
+run_fix() {
+    header "Fix All System Issues"
+
+    if [ -f "${SCRIPTS_DIR}/fix-all.sh" ]; then
+        bash "${SCRIPTS_DIR}/fix-all.sh" "$@"
+    else
+        error "fix-all.sh not found!"
+        return 1
+    fi
+}
+
+# ============================================================================
+# Fix NVIDIA Only
+# ============================================================================
+run_fix_nvidia() {
+    header "Fix NVIDIA Driver"
+
+    if [ -f "${SCRIPTS_DIR}/fix-nvidia.sh" ]; then
+        bash "${SCRIPTS_DIR}/fix-nvidia.sh"
+    else
+        error "fix-nvidia.sh not found!"
+        return 1
+    fi
+}
+
+# ============================================================================
+# Fix Thunderbolt/DisplayPort Only
+# ============================================================================
+run_fix_tb() {
+    header "Fix Thunderbolt/DisplayPort"
+
+    if [ -f "${SCRIPTS_DIR}/fix-thunderbolt-displayport.sh" ]; then
+        bash "${SCRIPTS_DIR}/fix-thunderbolt-displayport.sh"
+    else
+        error "fix-thunderbolt-displayport.sh not found!"
+        return 1
+    fi
+}
+
+# ============================================================================
 # Complete Setup
 # ============================================================================
 run_all() {
@@ -359,7 +419,7 @@ parse_args() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            scan|build|nvidia|thunderbolt|monitor|all|status|clean)
+            scan|build|nvidia|thunderbolt|monitor|debug|fix|fix-nvidia|fix-tb|all|status|clean)
                 COMMAND="$1"
                 shift
                 ;;
@@ -438,6 +498,18 @@ main() {
             ;;
         monitor)
             run_monitor
+            ;;
+        debug)
+            run_debug
+            ;;
+        fix)
+            run_fix "$@"
+            ;;
+        fix-nvidia)
+            run_fix_nvidia
+            ;;
+        fix-tb)
+            run_fix_tb
             ;;
         all)
             run_all
