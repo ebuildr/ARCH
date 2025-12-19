@@ -44,6 +44,24 @@ chmod +x arch-builder.sh scripts/*.sh
 ./arch-builder.sh thunderbolt   # Setup Thunderbolt
 ```
 
+## Custom Installation ISO
+
+Create a bootable Arch Linux ISO with ARCH kernel builder pre-installed:
+
+```bash
+# Build custom ISO (requires archiso)
+cd iso
+sudo bash build-iso.sh
+
+# Write to USB
+sudo dd if=iso/out/arch-msi-raider-*.iso of=/dev/sdX bs=4M status=progress
+
+# Boot from USB and install
+# The ARCH project will be pre-installed in ~/ARCH
+```
+
+**See [iso/README.md](iso/README.md) for complete ISO building guide.**
+
 ## Usage
 
 ### Main Commands

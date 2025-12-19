@@ -26,7 +26,14 @@ ARCH/
 │   ├── scan-hardware.sh     # Hardware detection and config generation
 │   ├── build-kernel.sh      # Kernel download, configure, and build
 │   ├── build-nvidia.sh      # NVIDIA RTX 5090 driver setup
-│   └── setup-thunderbolt.sh # Thunderbolt 5 / Razer dock config
+│   ├── setup-thunderbolt.sh # Thunderbolt 5 / Razer dock config
+│   ├── debug-system.sh      # Comprehensive system diagnostics
+│   ├── fix-all.sh           # Master fix script for all issues
+│   ├── fix-nvidia.sh        # NVIDIA driver troubleshooting
+│   └── fix-thunderbolt-displayport.sh # TB5/DP fixes
+├── iso/
+│   ├── build-iso.sh         # Custom Arch Linux ISO builder
+│   └── README.md            # ISO building guide
 ├── config/                  # Generated configurations
 │   ├── hardware-report.txt  # Hardware scan results
 │   ├── kernel-config-fragment.txt  # Kernel config options
